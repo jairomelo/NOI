@@ -1,0 +1,9 @@
+[submodule "repos/sitiopostales"]
+	path = repos/sitiopostales
+	url = git@github.com:ARVEVS/sitiopostales.git
+[submodule "repos/Coleccion-MC"]
+	path = repos/Coleccion-MC
+	url = git@github.com:Coleccion-de-Postales-de-Manuel-Campero/Coleccion-MC.git
+[submodule "repos/EuroPosts"]
+	path = repos/EuroPosts
+	url = git@github.com:Grupo-Ninas/EuroPosts.git
