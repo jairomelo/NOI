@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import uuid
 
 def consolidate_data(data_folder, output_folder=None, output_file="consolidated_data.csv", dry_run=False):
     
@@ -19,13 +20,14 @@ def consolidate_data(data_folder, output_folder=None, output_file="consolidated_
     consolidated_df = consolidated_df.dropna(how='all').dropna(subset=['filename'])
     consolidated_df = consolidated_df.replace(r'\s', ' ', regex=True)
     
+    consolidated_df['objectid'] = consolidated_df.apply(lambda _: str(uuid.uuid4()), axis=1)
+    
     if not dry_run:
         consolidated_df.to_csv(os.path.join(output_folder, output_file), index=False)
         print(f"Consolidated data saved to {output_file}")
     else:
         print(f"Dry run: Consolidated data would be saved to {output_file} with {len(consolidated_df)} rows.")
         print(consolidated_df.head())
-    
 
 if __name__ == "__main__":
-    pass
+    consolidate_data("data")
