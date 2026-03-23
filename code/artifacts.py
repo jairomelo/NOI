@@ -1,14 +1,15 @@
 import os
 import helpers.file_converter as file_converter
-import re
             
-def converter(origin, destination, remove_darker_duplicates=True):
+def converter(origin, destination, remove_darker_duplicates=True, exclude_extensions=None):
     os.makedirs(destination, exist_ok=True)
     
     for r, d, f in os.walk(origin):
         for file in f:
             name, extension = os.path.splitext(file)
-            if not extension:
+            if exclude_extensions and extension.lower() in exclude_extensions:
+                continue
+            if not extension or extension.lower() in [".heic"]:
                 full_path = os.path.join(r, file)
                 file_converter.heic_to_img(full_path, destination)
             elif extension.lower() in [".pdf"]:
@@ -68,5 +69,22 @@ def front_back_bypattern(artifacts_folder, pattern={"-a": "-front", "-b": "-back
                         else:
                             print(f"Dry run: Would rename {file} to {new_name + extension}")
 
+def remove_non_jpg(artifacts_folder, dry_run=False):
+    for r, d, f in os.walk(artifacts_folder):
+        for file in f:
+            name, extension = os.path.splitext(file)
+            if extension.lower() not in [".jpg", ".jpeg"]:
+                full_path = os.path.join(r, file)
+                if not dry_run:
+                    os.remove(full_path)
+                else:
+                    print(f"Dry run: Would remove {full_path}")
+
 if __name__ == "__main__":
-    front_back_bypattern('artifacts/sitiopostales', dry_run=False)
+    folder = "artifacts/sitiopostales"
+    
+    converter(folder, folder, exclude_extensions=[".pdf", ".jpg"])
+    consolidate_file_extensions(folder)
+    remove_non_jpg(folder, dry_run=False)
+    front_back_bypattern(folder, pattern={"-a": "-front", "-b": "-back"}, dry_run=False)
+    
