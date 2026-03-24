@@ -1,6 +1,10 @@
 import { useState } from 'react';
+import { useLang } from '../i18n/useLang.js';
+import { ui } from '../i18n/ui.js';
 
 export default function PostcardFlip({ front, back, title }) {
+  const lang = useLang();
+  const t = ui[lang] ?? ui.en;
   const [flipped, setFlipped] = useState(false);
   const hasBack = Boolean(back);
 
@@ -9,7 +13,7 @@ export default function PostcardFlip({ front, back, title }) {
       <div
         onClick={() => hasBack && setFlipped(f => !f)}
         style={{ cursor: hasBack ? 'pointer' : 'default', perspective: '1200px' }}
-        title={hasBack ? (flipped ? 'Clic para ver el frente' : 'Clic para ver el reverso') : ''}
+        title={hasBack ? (flipped ? t.flipTipFront : t.flipTipBack) : ''}
       >
         <div
           style={{
@@ -36,7 +40,7 @@ export default function PostcardFlip({ front, back, title }) {
           {hasBack && (
             <img
               src={back}
-              alt={`${title} — reverso`}
+              alt={`${title} — ${lang === 'es' ? 'reverso' : 'back'}`}
               style={{
                 position: 'absolute',
                 inset: 0,
@@ -65,7 +69,7 @@ export default function PostcardFlip({ front, back, title }) {
             userSelect: 'none',
           }}
         >
-          {flipped ? '↩ Clic para ver el frente' : '↩ Clic para ver el reverso'}
+          {flipped ? t.flipToFront : t.flipToBack}
         </p>
       )}
     </div>

@@ -5,15 +5,19 @@ interface Props {
 }
 const { card, base } = Astro.props;
 
-const LANG_NAMES: Record<string, string> = {
+const LANG_NAMES_EN: Record<string, string> = {
+  it: 'Italian', fr: 'French', de: 'German', en: 'English',
+  es: 'Spanish', ru: 'Russian', nl: 'Dutch',
+};
+const LANG_NAMES_ES: Record<string, string> = {
   it: 'Italiano', fr: 'Francés', de: 'Alemán', en: 'Inglés',
   es: 'Español', ru: 'Ruso', nl: 'Neerlandés',
 };
 
-function langLabel(code: string | null): string {
+function langLabel(code: string | null, names: Record<string, string>): string {
   if (!code) return '';
   const primary = code.split(/[;,\s]/)[0].trim().toLowerCase();
-  return LANG_NAMES[primary] ?? code;
+  return names[primary] ?? code;
 }
 ---
 
@@ -23,13 +27,13 @@ function langLabel(code: string | null): string {
   <dl class="meta-list">
     {card.date && (
       <div class="meta-row">
-        <dt>Año</dt>
+        <dt><span data-lang="en">Year</span><span data-lang="es">Año</span></dt>
         <dd>{card.date}</dd>
       </div>
     )}
     {card.location && (
       <div class="meta-row">
-        <dt>Lugar</dt>
+        <dt><span data-lang="en">Place</span><span data-lang="es">Lugar</span></dt>
         <dd>
           {(card.latitude && card.longitude)
             ? <a
@@ -44,13 +48,16 @@ function langLabel(code: string | null): string {
     )}
     {card.language && (
       <div class="meta-row">
-        <dt>Idioma</dt>
-        <dd>{langLabel(card.language)}</dd>
+        <dt><span data-lang="en">Language</span><span data-lang="es">Idioma</span></dt>
+        <dd>
+          <span data-lang="en">{langLabel(card.language, LANG_NAMES_EN)}</span>
+          <span data-lang="es">{langLabel(card.language, LANG_NAMES_ES)}</span>
+        </dd>
       </div>
     )}
     {card.source && (
       <div class="meta-row">
-        <dt>Fuente</dt>
+        <dt><span data-lang="en">Source</span><span data-lang="es">Fuente</span></dt>
         <dd>{card.source}</dd>
       </div>
     )}
@@ -71,13 +78,13 @@ function langLabel(code: string | null): string {
   {card.color_hex && (
     <div class="meta-color">
       <span class="color-swatch" style={`background:${card.color_hex}`}></span>
-      <span>Color dominante</span>
+      <span><span data-lang="en">Dominant colour</span><span data-lang="es">Color dominante</span></span>
     </div>
   )}
 
   <nav class="meta-nav">
-    <a href={`${base}grid`}>← Volver a la colección</a>
-    <a href={`${base}route`}>Ver en el mapa →</a>
+    <a href={`${base}grid`}><span data-lang="en">← Back to collection</span><span data-lang="es">← Volver a la colección</span></a>
+    <a href={`${base}route`}><span data-lang="en">View on map →</span><span data-lang="es">Ver en el mapa →</span></a>
   </nav>
 </article>
 

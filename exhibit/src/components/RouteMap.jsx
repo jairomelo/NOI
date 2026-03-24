@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useLang } from '../i18n/useLang.js';
+import { ui } from '../i18n/ui.js';
 
 // ---- helpers ----
 
@@ -38,6 +40,8 @@ function groupByCity(postcards) {
 // ---- component ----
 
 export default function RouteMap({ postcards, base }) {
+  const lang = useLang();
+  const t = ui[lang] ?? ui.en;
   const mapRef           = useRef(null);
   const mapInstanceRef   = useRef(null);   // { map, L }
   const markersLayerRef  = useRef(null);
@@ -146,7 +150,7 @@ export default function RouteMap({ postcards, base }) {
     setWikiLoading(true);
     setWikiSummary(null);
 
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTerm)}`)
+    fetch(`https://${t.wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTerm)}`)
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (data?.extract) {
@@ -181,7 +185,7 @@ export default function RouteMap({ postcards, base }) {
 
       {/* City selector */}
       <div style={S.cityBar}>
-        <label style={S.label}>Lugar:</label>
+        <label style={S.label}>{t.place}</label>
         <select
           value={selectedCity ?? ''}
           onChange={e => { setSelectedCity(e.target.value); setSelectedCard(null); }}
@@ -191,7 +195,7 @@ export default function RouteMap({ postcards, base }) {
             <option key={c} value={c}>{c}  ({cityGroups[c].length})</option>
           ))}
         </select>
-        <span style={S.muted}>{cityCards.length} postales</span>
+        <span style={S.muted}>{t.postcards(cityCards.length)}</span>
       </div>
 
       {/* Map + detail panel (two columns on wide screens via CSS class) */}
@@ -236,27 +240,27 @@ export default function RouteMap({ postcards, base }) {
                 <p style={S.panelDesc}>{selectedCard.description}</p>
               )}
               <a href={`${base}detail/${selectedCard.objectid}`} style={S.panelLink}>
-                Ver objeto completo →
+                {t.viewFull}
               </a>
             </div>
 
             {/* Wikipedia: current context */}
             <div style={S.wikiBlock}>
-              <p style={S.wikiHead}>Contexto actual — Wikipedia</p>
-              {wikiLoading && <p style={S.muted}>Buscando…</p>}
+              <p style={S.wikiHead}>{t.wikiHead}</p>
+              {wikiLoading && <p style={S.muted}>{t.wikiLoading}</p>}
               {wikiSummary && (
                 <>
                   <p style={S.wikiTitle}>{wikiSummary.title}</p>
                   <p style={S.wikiText}>{wikiSummary.extract}</p>
                   {wikiSummary.url && (
                     <a href={wikiSummary.url} target="_blank" rel="noopener" style={S.panelLink}>
-                      Leer en Wikipedia →
+                      {t.readWiki}
                     </a>
                   )}
                 </>
               )}
               {!wikiLoading && !wikiSummary && (
-                <p style={S.muted}>Sin artículo disponible para este lugar.</p>
+                <p style={S.muted}>{t.wikiNone}</p>
               )}
             </div>
 

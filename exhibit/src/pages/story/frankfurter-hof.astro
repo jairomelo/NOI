@@ -9,7 +9,7 @@ const base = import.meta.env.BASE_URL;
 <Layout title={`${story.title} — Historia`}>
   <!-- Story header -->
   <header class="story-header">
-    <p class="story-header__eyebrow">Historia</p>
+    <p class="story-header__eyebrow"><span data-lang="en">Story</span><span data-lang="es">Historia</span></p>
     <h1 class="story-header__title">{story.title}</h1>
     <p class="story-header__subtitle">{story.subtitle}</p>
   </header>
@@ -25,10 +25,8 @@ const base = import.meta.env.BASE_URL;
   <!-- Footer nav: link to the underlying card detail page -->
   <div class="story-footer">
     <p class="story-footer__hint">
-      Explora toda la colección en
-      <a href={`${base}grid`}>Todos los objetos</a>
-      o el recorrido geográfico en
-      <a href={`${base}route`}>Una ruta</a>.
+      <span data-lang="en">Explore the full collection in <a href={`${base}grid`}>All objects</a> or take the geographical tour in <a href={`${base}route`}>A route</a>.</span>
+      <span data-lang="es">Explora toda la colección en <a href={`${base}grid`}>Todos los objetos</a> o el recorrido geográfico en <a href={`${base}route`}>Una ruta</a>.</span>
     </p>
   </div>
 </Layout>

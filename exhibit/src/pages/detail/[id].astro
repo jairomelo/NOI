@@ -26,12 +26,12 @@ const next = idx < postcards.length - 1 ? postcards[idx + 1] : null;
   <div class="detail-wrap">
     <div class="detail-nav">
       {prev
-        ? <a href={`${base}detail/${prev.objectid}`}>← Anterior</a>
+        ? <a href={`${base}detail/${prev.objectid}`}><span data-lang="en">← Previous</span><span data-lang="es">← Anterior</span></a>
         : <span></span>
       }
-      <a href={`${base}grid`} class="detail-nav__back">Colección</a>
+      <a href={`${base}grid`} class="detail-nav__back"><span data-lang="en">Collection</span><span data-lang="es">Colección</span></a>
       {next
-        ? <a href={`${base}detail/${next.objectid}`}>Siguiente →</a>
+        ? <a href={`${base}detail/${next.objectid}`}><span data-lang="en">Next →</span><span data-lang="es">Siguiente →</span></a>
         : <span></span>
       }
     </div>
@@ -40,7 +40,7 @@ const next = idx < postcards.length - 1 ? postcards[idx + 1] : null;
       <div class="detail-image">
         {frontUrl
           ? <PostcardFlip front={frontUrl} back={backUrl} title={card.title} client:load />
-          : <div class="no-image">Sin imagen disponible</div>
+          : <div class="no-image"><span data-lang="en">No image available</span><span data-lang="es">Sin imagen disponible</span></div>
         }
       </div>
       <div class="detail-meta">

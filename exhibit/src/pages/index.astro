@@ -5,34 +5,34 @@ import postcards from '../data/postcards.json';
 const base = import.meta.env.BASE_URL;
 
 // Pick one representative card per exhibit mode
-const storyCard = postcards.find(p => p.image_front && p.description) ?? postcards[0];
+const storyCard = postcards.find(p => p.image_front && p.description) ?? postcards[101];
 const gridCard  = postcards.find(p => p.image_thumb && p.color_hue && p.color_hue > 30) ?? postcards[10];
 const routeCard = postcards.find(p => p.image_front && p.latitude)  ?? postcards[5];
 
 const img = (name: string) => `${base}images/${name}`;
 ---
 
-<Layout title="Colección Campero — Exhibit">
+<Layout title="Campero Collection — Exhibit">
   <section class="hero">
-    <p class="hero-eyebrow">Una colección · Tres modos de leer</p>
-    <h1>Postales de principios del siglo XX</h1>
+    <p class="hero-eyebrow"><span data-lang="en">A collection · Three ways to read</span><span data-lang="es">Una colección · Tres modos de leer</span></p>
+    <h1><span data-lang="en">Postcards from the early 20th century</span><span data-lang="es">Postales de principios del siglo XX</span></h1>
     <p class="hero-sub">
-      Documentos históricos como herramientas de narración.
-      Elige cómo quieres explorar la colección.
+      <span data-lang="en">Historical documents as storytelling tools. Choose how you want to explore the collection.</span>
+      <span data-lang="es">Documentos históricos como herramientas de narración. Elige cómo quieres explorar la colección.</span>
     </p>
   </section>
 
   <section class="modes">
-    <a class="mode-card" href={`${base}detail/${storyCard.objectid}`}>
+    <a class="mode-card" href={`${base}story/frankfurter-hof`}>
       <div
         class="mode-card__img"
         style={`background-image:url('${img(storyCard.image_front)}')`}
       ></div>
       <div class="mode-card__body">
         <span class="mode-label">I</span>
-        <h2>Un solo objeto</h2>
-        <p>Lee despacio una postal. Sus edificios, sus personas, el mensaje en el dorso.</p>
-        <span class="mode-cta">Explorar →</span>
+        <h2><span data-lang="en">A single story</span><span data-lang="es">Una sola historia</span></h2>
+        <p><span data-lang="en">What story does a postcard tell?</span><span data-lang="es">¿Qué historia nos cuenta una postal?</span></p>
+        <span class="mode-cta"><span data-lang="en">Explore →</span><span data-lang="es">Explorar →</span></span>
       </div>
     </a>
 
@@ -43,9 +43,9 @@ const img = (name: string) => `${base}images/${name}`;
       ></div>
       <div class="mode-card__body">
         <span class="mode-label">II</span>
-        <h2>Todos los objetos</h2>
-        <p>Ver la colección entera de un vistazo. Filtrar por color, tema o idioma.</p>
-        <span class="mode-cta">Ver colección →</span>
+        <h2><span data-lang="en">All objects</span><span data-lang="es">Todos los objetos</span></h2>
+        <p><span data-lang="en">See the entire collection at a glance. Filter by colour, subject or language.</span><span data-lang="es">Ver la colección entera de un vistazo. Filtrar por color, tema o idioma.</span></p>
+        <span class="mode-cta"><span data-lang="en">Browse collection →</span><span data-lang="es">Ver colección →</span></span>
       </div>
     </a>
 
@@ -56,9 +56,9 @@ const img = (name: string) => `${base}images/${name}`;
       ></div>
       <div class="mode-card__body">
         <span class="mode-label">III</span>
-        <h2>Una ruta</h2>
-        <p>Sigue las postales por el mapa. Un día en un lugar, ayer y hoy.</p>
-        <span class="mode-cta">Ver mapa →</span>
+        <h2><span data-lang="en">A route</span><span data-lang="es">Una ruta</span></h2>
+        <p><span data-lang="en">Follow the postcards on the map. A place, yesterday and today.</span><span data-lang="es">Sigue las postales por el mapa. Un lugar, ayer y hoy.</span></p>
+        <span class="mode-cta"><span data-lang="en">View map →</span><span data-lang="es">Ver mapa →</span></span>
       </div>
     </a>
   </section>

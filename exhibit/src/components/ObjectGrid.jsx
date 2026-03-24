@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useLang } from '../i18n/useLang.js';
+import { ui } from '../i18n/ui.js';
 
-const LANG_NAMES = {
-  it: 'Italiano', fr: 'Francés', de: 'Alemán', en: 'Inglés',
-  es: 'Español', ru: 'Ruso', nl: 'Neerlandés',
-};
+// LANG_NAMES now comes from the i18n dictionary (see t.langNames below)
 
 function primaryLang(code) {
   if (!code) return null;
@@ -11,6 +10,8 @@ function primaryLang(code) {
 }
 
 export default function ObjectGrid({ postcards, base }) {
+  const lang = useLang();
+  const t = ui[lang] ?? ui.en;
   // ---- derived filter options (memoized once) ----
   const allSubjects = useMemo(() => {
     const s = new Set();
@@ -22,10 +23,10 @@ export default function ObjectGrid({ postcards, base }) {
     const m = new Map();
     postcards.forEach(p => {
       const l = primaryLang(p.language);
-      if (l) m.set(l, LANG_NAMES[l] ?? l);
+      if (l) m.set(l, t.langNames[l] ?? l);
     });
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [postcards]);
+  }, [postcards, lang]);
 
   // ---- filter / sort state ----
   const [activeSubject, setActiveSubject] = useState(null);
@@ -72,14 +73,14 @@ export default function ObjectGrid({ postcards, base }) {
 
         {/* Sort */}
         <div style={S.group}>
-          <span style={S.label}>Ordenar</span>
+          <span style={S.label}>{t.sort}</span>
           <div style={S.segmented}>
-            {[['hue', 'Por color'], ['date', 'Por fecha'], ['title', 'A–Z']].map(([v, t]) => (
+            {[['hue', t.sortColor], ['date', t.sortDate], ['title', t.sortAZ]].map(([v, label]) => (
               <button
                 key={v}
                 onClick={() => setSortMode(v)}
                 style={{ ...S.segBtn, ...(sortMode === v ? S.segBtnOn : {}) }}
-              >{t}</button>
+              >{label}</button>
             ))}
           </div>
         </div>
@@ -105,7 +106,7 @@ export default function ObjectGrid({ postcards, base }) {
 
         {/* Language pills */}
         <div style={S.group}>
-          <span style={S.label}>Idioma</span>
+          <span style={S.label}>{t.language}</span>
           <div style={S.pills}>
             {allLangs.map(([code, label]) => (
               <button
@@ -119,7 +120,7 @@ export default function ObjectGrid({ postcards, base }) {
 
         {/* Grid size */}
         <div style={S.group}>
-          <span style={S.label}>Tamaño</span>
+          <span style={S.label}>{t.size}</span>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <span style={{ ...S.label, minWidth: 'unset', fontSize: '0.65rem' }}>▪</span>
             <input
@@ -132,7 +133,7 @@ export default function ObjectGrid({ postcards, base }) {
         </div>
 
         <span style={{ ...S.label, marginLeft: 'auto', alignSelf: 'center' }}>
-          {visible.length} postales
+          {t.postcards(visible.length)}
         </span>
       </div>
 
@@ -176,7 +177,7 @@ export default function ObjectGrid({ postcards, base }) {
                 {/* Back */}
                 <div className="grid-flip-face grid-flip-back-face">
                   {backThumb
-                    ? <img src={`${base}images/${backThumb}`} alt={`${card.title} — reverso`} loading="lazy" style={S.thumb} />
+                    ? <img src={`${base}images/${backThumb}`} alt={t.cardBack(card.title)} loading="lazy" style={S.thumb} />
                     : <div style={S.noImg}>∅</div>
                   }
                 </div>
