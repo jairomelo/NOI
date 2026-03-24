@@ -99,25 +99,53 @@ def _normalize_language(lang_str):
 
 
 def _extract_dominant_color(image_path):
-    """Return (hex_color, hue_degrees) for the most prominent non-neutral pixel."""
+    """Return (hex_color, hue_degrees) for the visually distinctive color.
+
+    Uses palette quantization (median-cut) to group the image into 16 clusters,
+    then scores each cluster by  pixel_count × exp(3 × saturation).  The
+    exponential saturation term ensures a small vivid area (yellow ink, blue
+    sky) outscores a large muted sepia background — important for vintage
+    postcards where paper tone would otherwise dominate pure-count methods.
+    Near-black and near-white clusters are excluded before scoring.
+    """
+    import math
     if not image_path or not os.path.exists(image_path):
         return None, None
     try:
         with Image.open(image_path) as img:
-            small = img.convert('RGB').resize((60, 60), Image.LANCZOS)
-            import numpy as np
-            arr = np.array(small)
-            pixels = [tuple(row) for row in arr.reshape(-1, 3).tolist()]
+            small = img.convert('RGB').resize((150, 150), Image.LANCZOS)
 
-        # drop near-white (all channels >= 220) and near-black (all channels <= 35)
-        colorful = [
-            p for p in pixels
-            if not (p[0] >= 220 and p[1] >= 220 and p[2] >= 220)
-            and not (p[0] <= 35  and p[1] <= 35  and p[2] <= 35)
+        # Quantize to 16 representative colors (PIL median-cut)
+        n_colors = 16
+        quantized = small.quantize(colors=n_colors, method=Image.Quantize.MEDIANCUT)
+        raw_palette = quantized.getpalette()          # 256*3 ints
+        palette = [
+            (raw_palette[i * 3], raw_palette[i * 3 + 1], raw_palette[i * 3 + 2])
+            for i in range(n_colors)
         ]
-        source = colorful if colorful else pixels  # fallback if image is all neutral
 
-        dominant = Counter(source).most_common(1)[0][0]
+        # Count how many pixels belong to each cluster
+        counts = Counter(quantized.get_flattened_data())  # keys are palette indices
+        total = sum(counts.values()) or 1
+
+        def hsv_of(rgb):
+            r, g, b = (x / 255.0 for x in rgb)
+            return colorsys.rgb_to_hsv(r, g, b)
+
+        def score(idx):
+            """High score = many pixels AND vivid colour. Near-black/white → 0."""
+            _h, s, v = hsv_of(palette[idx])
+            if v < 0.15 or v > 0.93 or s < 0.06:
+                return 0.0
+            freq = counts.get(idx, 0) / total
+            return freq * math.exp(3.0 * s)   # strong saturation bonus
+
+        best_idx = max(range(n_colors), key=score)
+        # If every cluster was near-black/white, fall back to most-populous
+        if score(best_idx) == 0.0:
+            best_idx = max(counts, key=counts.get)
+
+        dominant = palette[best_idx]
         hex_color = '#{:02x}{:02x}{:02x}'.format(*dominant)
         r, g, b = (x / 255.0 for x in dominant)
         hue = round(colorsys.rgb_to_hsv(r, g, b)[0] * 360)
