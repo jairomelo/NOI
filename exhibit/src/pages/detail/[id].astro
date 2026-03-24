@@ -1,0 +1,99 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ArtifactMeta from '../../components/ArtifactMeta.astro';
+import PostcardFlip from '../../components/PostcardFlip.jsx';
+import postcards from '../../data/postcards.json';
+
+export function getStaticPaths() {
+  return postcards.map(card => ({
+    params: { id: card.objectid },
+    props:  { card },
+  }));
+}
+
+const { card } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const frontUrl = card.image_front ? `${base}images/${card.image_front}` : null;
+const backUrl  = card.image_back  ? `${base}images/${card.image_back}`  : null;
+
+const idx  = postcards.findIndex(p => p.objectid === card.objectid);
+const prev = idx > 0                    ? postcards[idx - 1] : null;
+const next = idx < postcards.length - 1 ? postcards[idx + 1] : null;
+---
+
+<Layout title={card.title}>
+  <div class="detail-wrap">
+    <div class="detail-nav">
+      {prev
+        ? <a href={`${base}detail/${prev.objectid}`}>← Anterior</a>
+        : <span></span>
+      }
+      <a href={`${base}grid`} class="detail-nav__back">Colección</a>
+      {next
+        ? <a href={`${base}detail/${next.objectid}`}>Siguiente →</a>
+        : <span></span>
+      }
+    </div>
+
+    <div class="detail-layout">
+      <div class="detail-image">
+        {frontUrl
+          ? <PostcardFlip front={frontUrl} back={backUrl} title={card.title} client:load />
+          : <div class="no-image">Sin imagen disponible</div>
+        }
+      </div>
+      <div class="detail-meta">
+        <ArtifactMeta card={card} base={base} />
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .detail-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 4rem;
+  }
+
+  .detail-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+    color: var(--muted);
+  }
+  .detail-nav a { color: var(--muted); }
+  .detail-nav a:hover { color: var(--text); text-decoration: none; }
+  .detail-nav__back {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent) !important;
+  }
+
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  @media (min-width: 820px) {
+    .detail-layout {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
+
+  .no-image {
+    color: var(--muted);
+    padding: 4rem 2rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+  }
+</style>

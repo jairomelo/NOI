@@ -1,0 +1,42 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ObjectGrid from '../components/ObjectGrid.jsx';
+import postcards from '../data/postcards.json';
+
+const base = import.meta.env.BASE_URL;
+
+// Only pass fields the grid needs (keeps serialized prop lean)
+const gridData = postcards.map(({
+  objectid, title, date, language, subjects,
+  image_thumb, image_back, color_hex, color_hue,
+}) => ({ objectid, title, date, language, subjects, image_thumb, image_back, color_hex, color_hue }));
+---
+
+<Layout title="Todos los objetos — Colección Campero">
+  <div class="grid-page">
+    <header class="page-header">
+      <h1>Todos los objetos</h1>
+      <p>{postcards.length} postales</p>
+    </header>
+    <ObjectGrid postcards={gridData} base={base} client:load />
+  </div>
+</Layout>
+
+<style>
+  .grid-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h1 {
+    font-family: var(--font-serif);
+    font-size: 1.6rem;
+    font-weight: 400;
+  }
+  .page-header p {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+</style>

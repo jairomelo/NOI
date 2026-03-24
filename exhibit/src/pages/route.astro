@@ -1,0 +1,56 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RouteMap from '../components/RouteMap.jsx';
+import postcards from '../data/postcards.json';
+import 'leaflet/dist/leaflet.css';
+
+const base = import.meta.env.BASE_URL;
+
+const geoCards = postcards
+  .filter(p => p.latitude && p.longitude)
+  .map(({ objectid, title, date, location, latitude, longitude,
+          description, image_front, image_thumb }) =>
+    ({ objectid, title, date, location, latitude, longitude,
+       description, image_front, image_thumb }));
+---
+
+<Layout title="Una ruta — Colección Campero">
+  <div class="route-page">
+    <header class="page-header">
+      <h1>Una ruta</h1>
+      <p>{geoCards.length} postales geolocalizadas</p>
+    </header>
+    <RouteMap postcards={geoCards} base={base} client:load />
+  </div>
+</Layout>
+
+<style>
+  .route-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h1 {
+    font-family: var(--font-serif);
+    font-size: 1.6rem;
+    font-weight: 400;
+  }
+  .page-header p {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Two-column layout for the map + panel on wider screens */
+  :global(.route-map-layout) {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 860px) {
+    :global(.route-map-layout) {
+      grid-template-columns: 1fr 380px;
+    }
+  }
+</style>
