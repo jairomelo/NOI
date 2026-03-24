@@ -8,7 +8,7 @@ from glob import glob
 from pathlib import Path
 
 import pandas as pd
-from PIL import Image
+from PIL import Image, ImageOps
 
 def consolidate_data(data_folder, output_folder=None, output_file="consolidated_data.csv", dry_run=False):
     
@@ -116,6 +116,7 @@ def _resize_image(src, dest, max_size, quality=82):
     """Resize so the longest side <= max_size; save JPEG to dest."""
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with Image.open(src) as img:
+        img = ImageOps.exif_transpose(img)  # bake any EXIF rotation into pixels
         img = img.convert('RGB')
         img.thumbnail((max_size, max_size), Image.LANCZOS)
         img.save(dest, 'JPEG', quality=quality, optimize=True)
@@ -151,7 +152,15 @@ def prepare_exhibit(
         back_ok  = bool(back_src  and os.path.exists(back_src))
 
         if not front_ok:
-            missing_fronts.append(front_src)
+            missing_fronts.append({
+                'filename':           str(row.get('filename', '')),
+                'objectid':           str(row.get('objectid', '')),
+                'title':              str(row.get('title', '')),
+                'artifacts_location': str(row.get('artifacts_location', '')),
+                'expected_front':     front_src or '(not resolved)',
+                'back_exists':        back_ok,
+                'back_path':          back_src or '',
+            })
 
         # dominant color from front image
         hex_color, hue = _extract_dominant_color(front_src) if front_ok else (None, None)
@@ -205,9 +214,10 @@ def prepare_exhibit(
 
     has_coords = sum(1 for r in records if r['latitude'] is not None)
     has_front  = sum(1 for r in records if r['image_front'])
+    n_missing  = len(missing_fronts)
     print(f"  Records with coordinates : {has_coords}/{len(records)}")
     print(f"  Records with front image : {has_front}/{len(records)}")
-    print(f"  Missing front images     : {len([x for x in missing_fronts if x])}")
+    print(f"  Missing front images     : {n_missing}")
 
     if dry_run:
         print("Dry run — skipping image resize and JSON export.\nSample records:")
@@ -240,6 +250,25 @@ def prepare_exhibit(
         json.dump(clean, f, ensure_ascii=False, indent=2)
 
     print(f"Exported {len(clean)} records → {output_json}")
+
+    # ---- write missing-fronts log -------------------------------------------
+    log_path = os.path.join(os.path.dirname(output_json), 'missing_fronts.log')
+    with open(log_path, 'w', encoding='utf-8') as lf:
+        lf.write(f"Missing front images: {len(missing_fronts)} of {len(records)} records\n")
+        lf.write("=" * 72 + "\n\n")
+        for m in missing_fronts:
+            lf.write(f"filename   : {m['filename']}\n")
+            lf.write(f"objectid   : {m['objectid']}\n")
+            lf.write(f"title      : {m['title']}\n")
+            lf.write(f"expected   : {m['expected_front']}\n")
+            lf.write(f"back_exists: {m['back_exists']}")
+            if m['back_exists']:
+                lf.write(f"  ({m['back_path']})")
+            lf.write("\n")
+            lf.write(f"artifacts  : {m['artifacts_location']}\n")
+            lf.write("-" * 72 + "\n")
+    print(f"  Missing-fronts log       : {log_path}")
+
     return clean
 
 

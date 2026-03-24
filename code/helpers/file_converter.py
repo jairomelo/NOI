@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageOps
 import pillow_heif
 from pathlib import Path
 import argparse
@@ -14,7 +14,8 @@ def heic_to_img(heic_path, output_dir=".", output_format="JPEG", overwrite=False
         # Open the HEIC image file
         image = Image.open(heic_path)
         
-        # Convert to RGB color space, required for saving in most formats
+        # Bake EXIF rotation into pixel data, then convert to RGB
+        image = ImageOps.exif_transpose(image)
         image = image.convert("RGB")
         
         # Save the image in the specified format
