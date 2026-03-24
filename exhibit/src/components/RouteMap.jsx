@@ -37,6 +37,32 @@ function groupByCity(postcards) {
   );
 }
 
+function jitterCoords(cards) {
+  const groups = {};
+  for (const card of cards) {
+    if (!card.latitude || !card.longitude) continue;
+    const key = `${card.latitude},${card.longitude}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(card);
+  }
+  const result = new Map();
+  for (const group of Object.values(groups)) {
+    if (group.length === 1) {
+      result.set(group[0].objectid, [group[0].latitude, group[0].longitude]);
+    } else {
+      const r = 0.003 + group.length * 0.001;
+      group.forEach((card, i) => {
+        const angle = (2 * Math.PI * i) / group.length;
+        result.set(card.objectid, [
+          card.latitude + r * Math.sin(angle),
+          card.longitude + r * Math.cos(angle),
+        ]);
+      });
+    }
+  }
+  return result;
+}
+
 // ---- component ----
 
 export default function RouteMap({ postcards, base }) {
@@ -99,10 +125,12 @@ export default function RouteMap({ postcards, base }) {
     markersLayerRef.current.clearLayers();
 
     const bounds = [];
+    const coordMap = jitterCoords(cityCards);
 
     cityCards.forEach((card, i) => {
       if (!card.latitude || !card.longitude) return;
-      bounds.push([card.latitude, card.longitude]);
+      const [lat, lng] = coordMap.get(card.objectid) ?? [card.latitude, card.longitude];
+      bounds.push([lat, lng]);
 
       const thumbUrl = card.image_thumb ? `${base}images/${card.image_thumb}` : null;
 
@@ -122,7 +150,17 @@ export default function RouteMap({ postcards, base }) {
             iconAnchor: [14, 14],
           });
 
-      const marker = L.marker([card.latitude, card.longitude], { icon });
+      const popupContent =
+        `<div style="width:190px;font-family:Georgia,serif;line-height:1.35;">
+          ${thumbUrl ? `<img src="${thumbUrl}" style="width:100%;height:110px;object-fit:cover;display:block;margin-bottom:8px;border-radius:3px;">` : ''}
+          <div style="font-size:0.84rem;font-weight:600;color:#f0e8da;margin-bottom:3px">${card.title ?? ''}</div>
+          ${card.date ? `<div style="font-size:0.72rem;color:#9a8c7e;margin-bottom:3px">${card.date}</div>` : ''}
+          ${card.location ? `<div style="font-size:0.72rem;color:#9a8c7e;margin-bottom:8px">${card.location}</div>` : ''}
+          <a href="${base}detail/${card.objectid}" style="font-size:0.72rem;color:#c9964a;text-decoration:none;font-weight:600;">${t.viewFull}</a>
+        </div>`;
+
+      const marker = L.marker([lat, lng], { icon });
+      marker.bindPopup(popupContent, { maxWidth: 230, className: 'postcard-popup' });
       marker.on('click', () => {
         setSelectedCard(card);
         setRouteIndex(i);

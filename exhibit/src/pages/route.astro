@@ -53,4 +53,27 @@ const geoCards = postcards
       grid-template-columns: 1fr 380px;
     }
   }
+
+  /* Dark-themed Leaflet popup for postcard tooltips */
+  :global(.postcard-popup .leaflet-popup-content-wrapper) {
+    background: #1f1c19;
+    border: 1px solid #3a342d;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+    padding: 0;
+  }
+  :global(.postcard-popup .leaflet-popup-content) {
+    margin: 10px;
+  }
+  :global(.postcard-popup .leaflet-popup-tip) {
+    background: #1f1c19;
+  }
+  :global(.postcard-popup .leaflet-popup-close-button) {
+    color: #9a8c7e !important;
+    font-size: 18px;
+    padding: 4px 6px;
+  }
+  :global(.postcard-popup .leaflet-popup-close-button:hover) {
+    color: #f0e8da !important;
+  }
 </style>
