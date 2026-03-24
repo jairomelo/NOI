@@ -8,8 +8,8 @@ const base = import.meta.env.BASE_URL;
 // Only pass fields the grid needs (keeps serialized prop lean)
 const gridData = postcards.map(({
   objectid, title, date, language, subjects,
-  image_thumb, image_back, color_hex, color_hue,
-}) => ({ objectid, title, date, language, subjects, image_thumb, image_back, color_hex, color_hue }));
+  image_thumb, image_back, color_hex, color_hue, color_palette,
+}) => ({ objectid, title, date, language, subjects, image_thumb, image_back, color_hex, color_hue, color_palette }));
 ---
 
 <Layout title="All Objects">

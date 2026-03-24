@@ -1,20 +1,51 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useLang } from '../i18n/useLang.js';
 import { ui } from '../i18n/ui.js';
 
 // LANG_NAMES now comes from the i18n dictionary (see t.langNames below)
 
-function hueName(h) {
-  if (h < 15 || h >= 345) return 'red';
-  if (h < 45)  return 'orange';
+// ── Colour helpers (module-level so they're reusable) ──────────────────────
+function satFromHex(hex) {
+  if (!hex || hex.length < 7) return 0;
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  return l === 0 || l === 1 ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+}
+
+function colorGroupKey(card) {
+  const all = card.color_palette?.length
+    ? card.color_palette
+    : card.color_hex ? [{ hex: card.color_hex, hue: card.color_hue ?? 0 }] : [];
+  const withSat = all.map(e => ({ ...e, _s: satFromHex(e.hex) }));
+  const best = [...withSat].sort((a, b) => b._s - a._s)[0];
+  if (!best || best._s < 0.08) return 'gray';
+  if (best._s < 0.22) return (best.hue >= 10 && best.hue <= 60) ? 'sepia' : 'gray';
+  const h = best.hue;
+  if (h < 20 || h >= 340) return 'red';
+  if (h < 50)  return 'orange';
   if (h < 75)  return 'yellow';
-  if (h < 105) return 'yellow-green';
-  if (h < 150) return 'green';
-  if (h < 195) return 'cyan';
-  if (h < 255) return 'blue';
-  if (h < 285) return 'indigo';
+  if (h < 165) return 'green';
+  if (h < 200) return 'cyan';
+  if (h < 260) return 'blue';
   return 'purple';
 }
+
+const GROUP_ORDER = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'sepia', 'gray'];
+const GROUP_META = {
+  red:    { label: 'Red',           swatch: '#c0392b' },
+  orange: { label: 'Orange',        swatch: '#e67e22' },
+  yellow: { label: 'Yellow',        swatch: '#c9a800' },
+  green:  { label: 'Green',         swatch: '#27ae60' },
+  cyan:   { label: 'Cyan',          swatch: '#17a589' },
+  blue:   { label: 'Blue',          swatch: '#2471a3' },
+  purple: { label: 'Purple',        swatch: '#8e44ad' },
+  sepia:  { label: 'Sepia / Brown', swatch: '#c9a96e' },
+  gray:   { label: 'Grayscale',     swatch: '#7f8c8d' },
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 function primaryLang(code) {
   if (!code) return null;
@@ -43,9 +74,9 @@ export default function ObjectGrid({ postcards, base }) {
   // ---- filter / sort state ----
   const [activeSubject, setActiveSubject] = useState(null);
   const [activeLangs,   setActiveLangs]   = useState(new Set());
-  const [sortMode,      setSortMode]      = useState('hue');
-  const [hueOffset,     setHueOffset]     = useState(0);   // hue° that sorts first on the ramp
+  const [sortMode,      setSortMode]      = useState('richness-desc');
   const [cellSize,      setCellSize]      = useState(155); // px — drives grid column width
+  const [paletteMode,   setPaletteMode]   = useState(false);
 
   // ---- filtered + sorted results ----
   const visible = useMemo(() => {
@@ -58,17 +89,34 @@ export default function ObjectGrid({ postcards, base }) {
       res = res.filter(p => activeLangs.has(primaryLang(p.language)));
 
     const sorted = [...res];
-    if (sortMode === 'hue') {
-      // RGB ramp offset by hueOffset: the chosen hue sorts first, wraps around the full wheel
-      const ramp = h => ((h ?? 0) - hueOffset + 360) % 360;
-      sorted.sort((a, b) => ramp(a.color_hue) - ramp(b.color_hue));
-    } else if (sortMode === 'date')
+    if (sortMode === 'richness-asc')
+      sorted.sort((a, b) => (a.color_palette?.length ?? 0) - (b.color_palette?.length ?? 0));
+    else if (sortMode === 'richness-desc')
+      sorted.sort((a, b) => (b.color_palette?.length ?? 0) - (a.color_palette?.length ?? 0));
+    else if (sortMode === 'date')
       sorted.sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
     else if (sortMode === 'title')
       sorted.sort((a, b) => a.title.localeCompare(b.title));
 
     return sorted;
-  }, [postcards, activeSubject, activeLangs, sortMode, hueOffset]);
+  }, [postcards, activeSubject, activeLangs, sortMode]);
+
+  // ---- colour-group buckets (only computed in 'group' mode) ----
+  const visibleGroups = useMemo(() => {
+    if (sortMode !== 'group') return null;
+    const byGroup = new Map(GROUP_ORDER.map(k => [k, []]));
+    visible.forEach(card => byGroup.get(colorGroupKey(card))?.push(card));
+    // within each group: most saturated first
+    byGroup.forEach(cards => cards.sort((a, b) => {
+      const sA = Math.max(0, ...(a.color_palette ?? []).map(e => satFromHex(e.hex)));
+      const sB = Math.max(0, ...(b.color_palette ?? []).map(e => satFromHex(e.hex)));
+      return sB - sA;
+    }));
+    return GROUP_ORDER
+      .filter(k => byGroup.get(k).length > 0)
+      .map(k => ({ key: k, ...GROUP_META[k], cards: byGroup.get(k) }))
+      .sort((a, b) => b.cards.length - a.cards.length);
+  }, [visible, sortMode]);
 
   function toggleLang(code) {
     setActiveLangs(prev => {
@@ -78,26 +126,70 @@ export default function ObjectGrid({ postcards, base }) {
     });
   }
 
-  function handleRampPointer(e) {
-    e.preventDefault();
-    const el = e.currentTarget;
-    function update(clientX) {
-      const rect = el.getBoundingClientRect();
-      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-      setHueOffset(Math.round((x / rect.width) * 360) % 360);
-    }
-    update(e.clientX);
-    function onMove(ev) { update(ev.clientX); }
-    function onUp() {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }
-
   // ---- styles (all inline to avoid Astro scoping issues in islands) ----
   const S = styles;
+
+  function renderCard(card) {
+    const backThumb = card.image_back ? `thumb_${card.image_back}` : null;
+    return (
+      <a
+        key={card.objectid}
+        href={`${base}detail/${card.objectid}`}
+        className={`grid-flip-cell${paletteMode ? ' palette-on' : ''}`}
+        style={S.cell}
+        title={card.title}
+      >
+        <div className="grid-flip-inner">
+          {/* Front */}
+          <div className="grid-flip-face">
+            {card.image_thumb
+              ? <img src={`${base}images/${card.image_thumb}`} alt={card.title} loading="lazy" style={S.thumb} />
+              : <div style={S.noImg}>?</div>
+            }
+          </div>
+          {/* Back */}
+          <div className="grid-flip-face grid-flip-back-face">
+            {backThumb
+              ? <img src={`${base}images/${backThumb}`} alt={t.cardBack(card.title)} loading="lazy" style={S.thumb} />
+              : <div style={S.noImg}>∅</div>
+            }
+          </div>
+        </div>
+        {/* Palette overlay */}
+        {card.color_palette?.length > 0 && (() => {
+          const pal = card.color_palette;
+          const rows = pal.length >= 3 ? '1fr 1fr' : '1fr';
+          return (
+            <div className="palette-overlay" style={{ gridTemplateRows: rows }}>
+              {pal.map((c, i) => (
+                <div
+                  key={i}
+                  className="palette-tile"
+                  style={{
+                    background: c.hex,
+                    gridColumn: pal.length === 1 || (pal.length === 3 && i === 2) ? 'span 2' : undefined,
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })()}
+        {/* Bottom colour bar — hidden in palette mode */}
+        {!paletteMode && (
+          card.color_palette?.length > 0
+            ? (
+              <div style={S.colorBar}>
+                {card.color_palette.map((c, i) => (
+                  <div key={i} style={{ background: c.hex, flex: c.pct }} />
+                ))}
+              </div>
+            ) : card.color_hex ? (
+              <div style={{ ...S.colorBar, background: card.color_hex }} />
+            ) : null
+        )}
+      </a>
+    );
+  }
 
   return (
     <div>
@@ -107,9 +199,13 @@ export default function ObjectGrid({ postcards, base }) {
         {/* Sort */}
         <div style={S.group}>
           <span style={S.label}>{t.sort}</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <div style={S.segmented}>
-              {[['hue', t.sortColor], ['date', t.sortDate], ['title', t.sortAZ]].map(([v, label]) => (
+              {[
+                ['richness-desc', t.sortRichnessDesc],
+                ['richness-asc',  t.sortRichnessAsc],
+                ['group',         t.sortGroup],
+              ].map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setSortMode(v)}
@@ -117,35 +213,12 @@ export default function ObjectGrid({ postcards, base }) {
                 >{label}</button>
               ))}
             </div>
-            {sortMode === 'hue' && (
-              <div style={S.rampWrap}>
-                <div
-                  style={{ ...S.ramp, cursor: 'ew-resize', userSelect: 'none' }}
-                  title="Drag to choose which colour sorts first"
-                  onMouseDown={handleRampPointer}
-                >
-                  {/* needle */}
-                  <div style={{
-                    position: 'absolute',
-                    left: `${(hueOffset / 360) * 100}%`,
-                    top: '-3px', bottom: '-3px',
-                    width: '2px',
-                    background: '#fff',
-                    borderRadius: '1px',
-                    transform: 'translateX(-50%)',
-                    pointerEvents: 'none',
-                    boxShadow: '0 0 4px rgba(0,0,0,0.7)',
-                  }} />
-                </div>
-                <div style={S.rampLabels}>
-                  <span>red</span>
-                  <span style={{ color: `hsl(${hueOffset},70%,65%)`, fontWeight: 600 }}>
-                    ↑ {hueName(hueOffset)}
-                  </span>
-                  <span>red</span>
-                </div>
-              </div>
-            )}
+            {/* Palette toggle — small pill inline with sort */}
+            <button
+              onClick={() => setPaletteMode(m => !m)}
+              title={paletteMode ? 'Show images' : 'Show colour palettes'}
+              style={{ ...S.pill, ...(paletteMode ? S.pillOn : {}), fontSize: '0.73rem' }}
+            >🎨 Discover the color</button>
           </div>
         </div>
 
@@ -211,47 +284,38 @@ export default function ObjectGrid({ postcards, base }) {
           transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
           will-change: transform;
         }
-        .grid-flip-cell:hover .grid-flip-inner { transform: rotateY(180deg); }
+        .grid-flip-cell:not(.palette-on):hover .grid-flip-inner { transform: rotateY(180deg); }
         .grid-flip-face {
           position: absolute; inset: 0;
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
         }
         .grid-flip-back-face { transform: rotateY(180deg); }
+        .palette-overlay {
+          position: absolute; inset: 0;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          overflow: hidden;
+          opacity: 0;
+          transition: opacity 0.25s;
+        }
+        .palette-on .palette-overlay { opacity: 1; }
+        .palette-tile {}
       `}</style>
       <div style={{ ...S.grid, gridTemplateColumns: `repeat(auto-fill, minmax(${cellSize}px, 1fr))`, gap: `${Math.max(1, Math.round(cellSize / 60))}px` }}>
-        {visible.map(card => {
-          const backThumb = card.image_back ? `thumb_${card.image_back}` : null;
-          return (
-            <a
-              key={card.objectid}
-              href={`${base}detail/${card.objectid}`}
-              className="grid-flip-cell"
-              style={S.cell}
-              title={card.title}
-            >
-              <div className="grid-flip-inner">
-                {/* Front */}
-                <div className="grid-flip-face">
-                  {card.image_thumb
-                    ? <img src={`${base}images/${card.image_thumb}`} alt={card.title} loading="lazy" style={S.thumb} />
-                    : <div style={S.noImg}>?</div>
-                  }
+        {sortMode === 'group' && visibleGroups
+          ? visibleGroups.map(({ key, label, swatch, cards }) => (
+              <Fragment key={key}>
+                <div style={{ gridColumn: '1 / -1', ...S.groupHeader }}>
+                  <span style={{ ...S.groupSwatch, background: swatch }} />
+                  <span style={S.groupLabel}>{label}</span>
+                  <span style={S.groupCount}>{cards.length}</span>
                 </div>
-                {/* Back */}
-                <div className="grid-flip-face grid-flip-back-face">
-                  {backThumb
-                    ? <img src={`${base}images/${backThumb}`} alt={t.cardBack(card.title)} loading="lazy" style={S.thumb} />
-                    : <div style={S.noImg}>∅</div>
-                  }
-                </div>
-              </div>
-              {card.color_hex && (
-                <div style={{ ...S.colorBar, background: card.color_hex }} />
-              )}
-            </a>
-          );
-        })}
+                {cards.map(renderCard)}
+              </Fragment>
+            ))
+          : visible.map(renderCard)
+        }
       </div>
     </div>
   );
@@ -335,25 +399,32 @@ const styles = {
   colorBar: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
-    height: '3px',
+    height: '5px',
+    display: 'flex',
   },
-  rampWrap: {
-    display: 'flex', flexDirection: 'column', gap: '2px',
+  groupHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    padding: '0.6rem 0.25rem 0.3rem',
+    borderBottom: '1px solid #3a342d',
+    marginBottom: '2px',
   },
-  ramp: {
-    position: 'relative',
-    height: '10px',
-    borderRadius: '5px',
-    // Full RGB wheel: red → yellow → green → cyan → blue → magenta → red
-    background: 'linear-gradient(to right, hsl(0,70%,55%), hsl(60,80%,55%), hsl(120,60%,48%), hsl(180,65%,50%), hsl(240,65%,58%), hsl(300,55%,55%), hsl(360,70%,55%))',
-    width: '220px',
+  groupSwatch: {
+    width: '10px', height: '10px',
+    borderRadius: '50%',
+    flexShrink: 0,
   },
-  rampLabels: {
-    display: 'flex', justifyContent: 'space-between',
-    width: '220px',
-    fontSize: '0.6rem',
-    color: '#6b5f52',
-    letterSpacing: '0.02em',
-    marginTop: '2px',
+  groupLabel: {
+    fontSize: '0.72rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    color: '#c9b8a4',
+    fontWeight: 600,
+  },
+  groupCount: {
+    fontSize: '0.68rem',
+    color: '#6a5f54',
+    marginLeft: '0.25rem',
   },
 };

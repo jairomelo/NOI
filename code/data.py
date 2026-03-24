@@ -98,19 +98,19 @@ def _normalize_language(lang_str):
     return str(lang_str).strip().lower()
 
 
-def _extract_dominant_color(image_path):
-    """Return (hex_color, hue_degrees) for the visually distinctive color.
+def _extract_dominant_color(image_path, n_palette=4):
+    """Return (hex_color, hue_degrees, palette) where:
+      - hex_color / hue_degrees: the single most visually distinctive color
+      - palette: list of {'hex', 'hue', 'pct'} dicts for the top n_palette
+        clusters, sorted highest-score first.  'pct' is raw pixel fraction.
 
-    Uses palette quantization (median-cut) to group the image into 16 clusters,
-    then scores each cluster by  pixel_count × exp(3 × saturation).  The
-    exponential saturation term ensures a small vivid area (yellow ink, blue
-    sky) outscores a large muted sepia background — important for vintage
-    postcards where paper tone would otherwise dominate pure-count methods.
-    Near-black and near-white clusters are excluded before scoring.
+    Scoring = pixel_count × exp(3 × saturation) so vivid minority colors
+    (e.g. a blue sky strip) beat large muted sepia backgrounds.  Palette
+    entries are also deduplicated by hue (≥15° apart) to maximise variety.
     """
     import math
     if not image_path or not os.path.exists(image_path):
-        return None, None
+        return None, None, []
     try:
         with Image.open(image_path) as img:
             small = img.convert('RGB').resize((150, 150), Image.LANCZOS)
@@ -140,8 +140,11 @@ def _extract_dominant_color(image_path):
             freq = counts.get(idx, 0) / total
             return freq * math.exp(3.0 * s)   # strong saturation bonus
 
-        best_idx = max(range(n_colors), key=score)
-        # If every cluster was near-black/white, fall back to most-populous
+        # Rank all clusters by score (best first)
+        ranked = sorted(range(n_colors), key=score, reverse=True)
+
+        best_idx = ranked[0]
+        # If every cluster is near-black/white, fall back to most-populous
         if score(best_idx) == 0.0:
             best_idx = max(counts, key=counts.get)
 
@@ -149,9 +152,33 @@ def _extract_dominant_color(image_path):
         hex_color = '#{:02x}{:02x}{:02x}'.format(*dominant)
         r, g, b = (x / 255.0 for x in dominant)
         hue = round(colorsys.rgb_to_hsv(r, g, b)[0] * 360)
-        return hex_color, hue
+
+        # Build diverse palette: top n_palette clusters, deduplicated by hue
+        palette_out = []
+        seen_hues = []
+        candidates = ranked + sorted(counts, key=lambda i: -counts[i])  # score first, then count
+        for idx in candidates:
+            if len(palette_out) >= n_palette:
+                break
+            rgb = palette[idx]
+            pct = counts.get(idx, 0) / total
+            if pct < 0.01:      # skip clusters with < 1% of pixels
+                continue
+            h_val, _s, _v = hsv_of(rgb)
+            h_deg = round(h_val * 360)
+            # Skip if too close in hue to an already-added entry (wrap-around safe)
+            if any(min((h_deg - sh) % 360, (sh - h_deg) % 360) < 15 for sh in seen_hues):
+                continue
+            palette_out.append({
+                'hex': '#{:02x}{:02x}{:02x}'.format(*rgb),
+                'hue': h_deg,
+                'pct': round(pct, 3),
+            })
+            seen_hues.append(h_deg)
+
+        return hex_color, hue, palette_out
     except Exception:
-        return None, None
+        return None, None, []
 
 
 def _resize_image(src, dest, max_size, quality=82):
@@ -208,8 +235,8 @@ def prepare_exhibit(
                 'back_path':          back_src or '',
             })
 
-        # dominant color from front image
-        hex_color, hue = _extract_dominant_color(front_src) if front_ok else (None, None)
+        # dominant color + full palette from front image
+        hex_color, hue, color_palette = _extract_dominant_color(front_src) if front_ok else (None, None, [])
 
         # prefer 'description'; fall back to the typo'd 'descripction' column
         description = row.get('description')
@@ -248,8 +275,9 @@ def prepare_exhibit(
             'image_front': front_name if front_ok else None,
             'image_back':  back_name  if back_ok  else None,
             'image_thumb': thumb_name if front_ok else None,
-            'color_hex':   hex_color,
-            'color_hue':   hue,
+            'color_hex':     hex_color,
+            'color_hue':     hue,
+            'color_palette': color_palette,
             # internal — stripped before JSON export
             '_src_front': front_src,
             '_src_back':  back_src,
