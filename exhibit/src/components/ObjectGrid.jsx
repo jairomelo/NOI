@@ -4,6 +4,18 @@ import { ui } from '../i18n/ui.js';
 
 // LANG_NAMES now comes from the i18n dictionary (see t.langNames below)
 
+function hueName(h) {
+  if (h < 15 || h >= 345) return 'red';
+  if (h < 45)  return 'orange';
+  if (h < 75)  return 'yellow';
+  if (h < 105) return 'yellow-green';
+  if (h < 150) return 'green';
+  if (h < 195) return 'cyan';
+  if (h < 255) return 'blue';
+  if (h < 285) return 'indigo';
+  return 'purple';
+}
+
 function primaryLang(code) {
   if (!code) return null;
   return code.split(/[;,\s]/)[0].trim().toLowerCase();
@@ -32,6 +44,7 @@ export default function ObjectGrid({ postcards, base }) {
   const [activeSubject, setActiveSubject] = useState(null);
   const [activeLangs,   setActiveLangs]   = useState(new Set());
   const [sortMode,      setSortMode]      = useState('hue');
+  const [hueOffset,     setHueOffset]     = useState(0);   // hue° that sorts first on the ramp
   const [cellSize,      setCellSize]      = useState(155); // px — drives grid column width
 
   // ---- filtered + sorted results ----
@@ -45,15 +58,17 @@ export default function ObjectGrid({ postcards, base }) {
       res = res.filter(p => activeLangs.has(primaryLang(p.language)));
 
     const sorted = [...res];
-    if (sortMode === 'hue')
-      sorted.sort((a, b) => (a.color_hue ?? 999) - (b.color_hue ?? 999));
-    else if (sortMode === 'date')
+    if (sortMode === 'hue') {
+      // RGB ramp offset by hueOffset: the chosen hue sorts first, wraps around the full wheel
+      const ramp = h => ((h ?? 0) - hueOffset + 360) % 360;
+      sorted.sort((a, b) => ramp(a.color_hue) - ramp(b.color_hue));
+    } else if (sortMode === 'date')
       sorted.sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
     else if (sortMode === 'title')
       sorted.sort((a, b) => a.title.localeCompare(b.title));
 
     return sorted;
-  }, [postcards, activeSubject, activeLangs, sortMode]);
+  }, [postcards, activeSubject, activeLangs, sortMode, hueOffset]);
 
   function toggleLang(code) {
     setActiveLangs(prev => {
@@ -61,6 +76,24 @@ export default function ObjectGrid({ postcards, base }) {
       next.has(code) ? next.delete(code) : next.add(code);
       return next;
     });
+  }
+
+  function handleRampPointer(e) {
+    e.preventDefault();
+    const el = e.currentTarget;
+    function update(clientX) {
+      const rect = el.getBoundingClientRect();
+      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      setHueOffset(Math.round((x / rect.width) * 360) % 360);
+    }
+    update(e.clientX);
+    function onMove(ev) { update(ev.clientX); }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
   }
 
   // ---- styles (all inline to avoid Astro scoping issues in islands) ----
@@ -74,14 +107,45 @@ export default function ObjectGrid({ postcards, base }) {
         {/* Sort */}
         <div style={S.group}>
           <span style={S.label}>{t.sort}</span>
-          <div style={S.segmented}>
-            {[['hue', t.sortColor], ['date', t.sortDate], ['title', t.sortAZ]].map(([v, label]) => (
-              <button
-                key={v}
-                onClick={() => setSortMode(v)}
-                style={{ ...S.segBtn, ...(sortMode === v ? S.segBtnOn : {}) }}
-              >{label}</button>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            <div style={S.segmented}>
+              {[['hue', t.sortColor], ['date', t.sortDate], ['title', t.sortAZ]].map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => setSortMode(v)}
+                  style={{ ...S.segBtn, ...(sortMode === v ? S.segBtnOn : {}) }}
+                >{label}</button>
+              ))}
+            </div>
+            {sortMode === 'hue' && (
+              <div style={S.rampWrap}>
+                <div
+                  style={{ ...S.ramp, cursor: 'ew-resize', userSelect: 'none' }}
+                  title="Drag to choose which colour sorts first"
+                  onMouseDown={handleRampPointer}
+                >
+                  {/* needle */}
+                  <div style={{
+                    position: 'absolute',
+                    left: `${(hueOffset / 360) * 100}%`,
+                    top: '-3px', bottom: '-3px',
+                    width: '2px',
+                    background: '#fff',
+                    borderRadius: '1px',
+                    transform: 'translateX(-50%)',
+                    pointerEvents: 'none',
+                    boxShadow: '0 0 4px rgba(0,0,0,0.7)',
+                  }} />
+                </div>
+                <div style={S.rampLabels}>
+                  <span>red</span>
+                  <span style={{ color: `hsl(${hueOffset},70%,65%)`, fontWeight: 600 }}>
+                    ↑ {hueName(hueOffset)}
+                  </span>
+                  <span>red</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -272,5 +336,24 @@ const styles = {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     height: '3px',
+  },
+  rampWrap: {
+    display: 'flex', flexDirection: 'column', gap: '2px',
+  },
+  ramp: {
+    position: 'relative',
+    height: '10px',
+    borderRadius: '5px',
+    // Full RGB wheel: red → yellow → green → cyan → blue → magenta → red
+    background: 'linear-gradient(to right, hsl(0,70%,55%), hsl(60,80%,55%), hsl(120,60%,48%), hsl(180,65%,50%), hsl(240,65%,58%), hsl(300,55%,55%), hsl(360,70%,55%))',
+    width: '220px',
+  },
+  rampLabels: {
+    display: 'flex', justifyContent: 'space-between',
+    width: '220px',
+    fontSize: '0.6rem',
+    color: '#6b5f52',
+    letterSpacing: '0.02em',
+    marginTop: '2px',
   },
 };
