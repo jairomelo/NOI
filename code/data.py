@@ -30,6 +30,20 @@ def consolidate_data(data_folder, output_folder=None, output_file="consolidated_
     
     consolidated_df['objectid'] = consolidated_df.apply(lambda _: str(uuid.uuid4()), axis=1)
     consolidated_df['artifacts_location'] = consolidated_df['filename'].apply(lambda x: _locate_artifacts(x, "artifacts", None))
+
+    # Preserve manually-set flags from the existing consolidated CSV (matched on
+    # filename, which is stable across re-runs unlike objectid).
+    _manual_cols = ['swap_front_back']
+    existing_path = os.path.join(output_folder, output_file)
+    if os.path.exists(existing_path):
+        prev = pd.read_csv(existing_path, usecols=lambda c: c in ['filename'] + _manual_cols)
+        for col in _manual_cols:
+            if col in prev.columns:
+                mapping = prev.dropna(subset=[col]).set_index('filename')[col]
+                consolidated_df[col] = consolidated_df['filename'].map(mapping)
+
+    if 'swap_front_back' not in consolidated_df.columns:
+        consolidated_df['swap_front_back'] = False
     
     if not dry_run:
         consolidated_df.to_csv(os.path.join(output_folder, output_file), index=False)
@@ -147,6 +161,10 @@ def prepare_exhibit(
 
     for _, row in df.iterrows():
         front_src, back_src = _parse_artifacts_location(row.get('artifacts_location'))
+
+        # Honour manual front/back swap flag
+        if str(row.get('swap_front_back', '')).strip().lower() in ('true', '1', 'yes'):
+            front_src, back_src = back_src, front_src
 
         front_ok = bool(front_src and os.path.exists(front_src))
         back_ok  = bool(back_src  and os.path.exists(back_src))
