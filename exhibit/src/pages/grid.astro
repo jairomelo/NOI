@@ -12,11 +12,11 @@ const gridData = postcards.map(({
 }) => ({ objectid, title, date, language, subjects, image_thumb, image_back, color_hex, color_hue }));
 ---
 
-<Layout title="Todos los objetos — Colección Campero">
+<Layout title="All Objects">
   <div class="grid-page">
     <header class="page-header">
-      <h1>Todos los objetos</h1>
-      <p>{postcards.length} postales</p>
+      <h1>All Objects</h1>
+      <p>{postcards.length} postcards</p>
     </header>
     <ObjectGrid postcards={gridData} base={base} client:load />
   </div>
