@@ -1,9 +1,17 @@
 ---
+import { marked } from 'marked';
+
 interface Props {
   card: any;
   base: string;
 }
 const { card, base } = Astro.props;
+
+const transcriptionHtml = (() => {
+  const t = card.transcription_back || card.transcription_front;
+  if (!t) return null;
+  return marked.parse(t);
+})();
 
 const LANG_NAMES_EN: Record<string, string> = {
   it: 'Italian', fr: 'French', de: 'German', en: 'English',
@@ -67,6 +75,16 @@ function langLabel(code: string | null, names: Record<string, string>): string {
     <blockquote class="meta-description">{card.description}</blockquote>
   )}
 
+  {transcriptionHtml && (
+    <div class="meta-transcription">
+      <p class="meta-transcription__label">
+        <span data-lang="en">Handwritten text</span>
+        <span data-lang="es">Texto manuscrito</span>
+      </p>
+      <div class="meta-transcription__body" set:html={transcriptionHtml} />
+    </div>
+  )}
+
   {card.subjects?.length > 0 && (
     <div class="meta-subjects">
       {card.subjects.map((s: string) => (
@@ -122,6 +140,31 @@ function langLabel(code: string | null, names: Record<string, string>): string {
     border-radius: 0 var(--radius) var(--radius) 0;
     margin-bottom: 1.5rem;
   }
+
+  .meta-transcription {
+    background: #1e1a14;
+    border: 1px solid #3a3020;
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+  .meta-transcription__label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #a08c60;
+    margin: 0 0 0.75rem;
+  }
+  .meta-transcription__body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 0.92rem;
+    line-height: 1.9;
+    color: #d4c9a8;
+  }
+  .meta-transcription__body p { margin: 0 0 0.6em; }
+  .meta-transcription__body p:last-child { margin-bottom: 0; }
+  .meta-transcription__body em { font-style: italic; color: #c4b898; }
+  .meta-transcription__body strong { font-weight: 600; color: #e0d5b5; }
 
   .meta-subjects {
     display: flex;
