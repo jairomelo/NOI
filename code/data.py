@@ -33,7 +33,7 @@ def consolidate_data(data_folder, output_folder=None, output_file="consolidated_
 
     # Preserve manually-set flags from the existing consolidated CSV (matched on
     # filename, which is stable across re-runs unlike objectid).
-    _manual_cols = ['swap_front_back']
+    _manual_cols = ['swap_front_back', 'rotation_front', 'rotation_back']
     existing_path = os.path.join(output_folder, output_file)
     if os.path.exists(existing_path):
         prev = pd.read_csv(existing_path, usecols=lambda c: c in ['filename'] + _manual_cols)
@@ -181,11 +181,17 @@ def _extract_dominant_color(image_path, n_palette=4):
         return None, None, []
 
 
-def _resize_image(src, dest, max_size, quality=82):
-    """Resize so the longest side <= max_size; save JPEG to dest."""
+def _resize_image(src, dest, max_size, quality=82, extra_rotation=0):
+    """Resize so the longest side <= max_size; save JPEG to dest.
+
+    *extra_rotation* is a clockwise rotation in degrees (0, 90, 180, 270)
+    applied after EXIF normalisation to correct physical scan orientation.
+    """
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with Image.open(src) as img:
         img = ImageOps.exif_transpose(img)  # bake any EXIF rotation into pixels
+        if extra_rotation:
+            img = img.rotate(-extra_rotation, expand=True)  # PIL rotate is CCW; negate for CW
         img = img.convert('RGB')
         img.thumbnail((max_size, max_size), Image.LANCZOS)
         img.save(dest, 'JPEG', quality=quality, optimize=True)
@@ -261,6 +267,12 @@ def prepare_exhibit(
         raw_date = row.get('date')
         date_str = str(int(float(raw_date))) if not pd.isna(raw_date) else None
 
+        def _to_rotation(val):
+            try:
+                return int(float(val)) if not pd.isna(val) else 0
+            except (ValueError, TypeError):
+                return 0
+
         record = {
             'objectid':    str(row['objectid']),
             'title':       str(row['title']).strip()    if not pd.isna(row.get('title'))    else '',
@@ -279,10 +291,12 @@ def prepare_exhibit(
             'color_hue':     hue,
             'color_palette': color_palette,
             # internal — stripped before JSON export
-            '_src_front': front_src,
-            '_src_back':  back_src,
-            '_front_ok':  front_ok,
-            '_back_ok':   back_ok,
+            '_src_front':  front_src,
+            '_src_back':   back_src,
+            '_front_ok':   front_ok,
+            '_back_ok':    back_ok,
+            '_rot_front':  _to_rotation(row.get('rotation_front')),
+            '_rot_back':   _to_rotation(row.get('rotation_back')),
         }
         records.append(record)
 
@@ -307,12 +321,12 @@ def prepare_exhibit(
         src_back  = r['_src_back']
 
         if r['_front_ok']:
-            _resize_image(src_front, os.path.join(output_images_dir, r['image_front']), full_max)
-            _resize_image(src_front, os.path.join(output_images_dir, r['image_thumb']), thumb_max, quality=75)
+            _resize_image(src_front, os.path.join(output_images_dir, r['image_front']), full_max, extra_rotation=r['_rot_front'])
+            _resize_image(src_front, os.path.join(output_images_dir, r['image_thumb']), thumb_max, quality=75, extra_rotation=r['_rot_front'])
             processed += 1
 
         if r['_back_ok']:
-            _resize_image(src_back, os.path.join(output_images_dir, r['image_back']), full_max)
+            _resize_image(src_back, os.path.join(output_images_dir, r['image_back']), full_max, extra_rotation=r['_rot_back'])
 
     print(f"  Images processed         : {processed}")
 
