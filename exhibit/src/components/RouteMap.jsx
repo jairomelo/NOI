@@ -4,24 +4,75 @@ import { ui } from '../i18n/ui.js';
 
 // ---- helpers ----
 
-const STREET_RE = /^(via |piazza |calle |rue |avenue |straße |str\. |blvd |boulevard |place |campo |ponte |dorsoduro |palazzo |corte |fondamenta )/i;
+// Prefixes that indicate the segment is a street/landmark, not a city
+const STREET_RE = /^(via |piazza |piazzale |calle |rue |avenue |straße |str\. |blvd |boulevard |place |campo |ponte |dorsoduro |palazzo |corte |fondamenta |galería |galeria |galleria |jardines |jardín |palacio |palazzetto |plaza |p\.za |puente |torre |bois |r\. |isla |bosque )/i;
+
+// Canonical city names (value) keyed by normalised accent-stripped lower-case name
+// Also handles common typos and cross-language equivalents
+const CITY_ALIASES = {
+  // Florence / Firenze / Florencia → Florencia
+  'firenze':       'Florencia',
+  'florence':      'Florencia',
+  'florencia':     'Florencia',
+  // Venice / Venezia / Venecia → Venecia
+  'venezia':       'Venecia',
+  'venice':        'Venecia',
+  'venecia':       'Venecia',
+  // Milan / Milano / Milán → Milán
+  'milan':         'Milán',
+  'milano':        'Milán',
+  'milan; italia': 'Milán',
+  // Paris / París → París
+  'paris':         'París',
+  'paris; francia':'París',
+  // Sanremo / San Remo → Sanremo
+  'san remo':      'Sanremo',
+  // Certosa di Pavia variants
+  '27012 certosa di pavia': 'Certosa di Pavia',
+  // Vienna typo
+  'aistria':       'Austria',     // country, but fixes "Viena, Aistria" lookup
+  'viena':         'Viena',
+  // Fontainebleau typo
+  'fontainbleau':  'Fontainebleau',
+  // Padua / Padova
+  'padova':        'Padua',
+  // Grenoble trailing space
+  'grenoble ':     'Grenoble',
+};
+
+// Strip diacritics and lower-case for alias lookup
+function normalize(str) {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function canonicalCity(raw) {
+  if (!raw) return raw;
+  const key = normalize(raw);
+  return CITY_ALIASES[key] ?? raw.trim();
+}
 
 function extractCity(location) {
   if (!location) return null;
-  const parts = location.split(',').map(s => s.trim()).filter(Boolean);
+  // Normalise separators: treat semicolons as commas
+  const parts = location.replace(/;/g, ',').split(',').map(s => s.trim()).filter(Boolean);
   if (parts.length === 0) return null;
-  if (parts.length <= 2) return parts[0];
-  // 3+ parts: first part may be a street — scan for a city-like segment
+  if (parts.length <= 2) return canonicalCity(parts[0]);
+  // 3+ parts: first part may be a street/landmark — scan for a city-like segment
   if (STREET_RE.test(parts[0])) {
     for (let i = 1; i < parts.length - 1; i++) {
       const p = parts[i];
       if (!/^\d/.test(p) && !STREET_RE.test(p)) {
         // strip postal code prefix and state abbreviation: "50122 Firenze FI" → "Firenze"
-        return p.replace(/^\d+\s*/, '').replace(/\s+[A-Z]{2}\s*$/, '').trim();
+        const city = p.replace(/^\d+\s*/, '').replace(/\s+[A-Z]{2}\s*$/, '').trim();
+        return canonicalCity(city);
       }
     }
   }
-  return parts[0];
+  return canonicalCity(parts[0]);
 }
 
 function groupByCity(postcards) {
@@ -31,9 +82,11 @@ function groupByCity(postcards) {
     if (!groups[city]) groups[city] = [];
     groups[city].push(card);
   }
-  // Sort cities by card count descending
+  // Filter cities with fewer than 5 postcards, then sort by card count descending
   return Object.fromEntries(
-    Object.entries(groups).sort((a, b) => b[1].length - a[1].length)
+    Object.entries(groups)
+      .filter(([, cards]) => cards.length >= 5)
+      .sort((a, b) => b[1].length - a[1].length)
   );
 }
 
@@ -80,6 +133,7 @@ export default function RouteMap({ postcards, base }) {
   const [routeIndex,   setRouteIndex]   = useState(0);
   const [wikiSummary,  setWikiSummary]  = useState(null);
   const [wikiLoading,  setWikiLoading]  = useState(false);
+  const [mapReady,     setMapReady]     = useState(false);
 
   const cityCards = useMemo(
     () => (selectedCity ? cityGroups[selectedCity] ?? [] : []),
@@ -108,6 +162,7 @@ export default function RouteMap({ postcards, base }) {
 
       markersLayerRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current  = { map, L };
+      setMapReady(true);
     });
 
     return () => {
@@ -118,9 +173,9 @@ export default function RouteMap({ postcards, base }) {
     };
   }, []);
 
-  // ---- update markers when city changes ----
+  // ---- update markers when city changes (or map first becomes ready) ----
   useEffect(() => {
-    if (!mapInstanceRef.current || !cityCards.length) return;
+    if (!mapReady || !mapInstanceRef.current || !cityCards.length) return;
     const { map, L } = mapInstanceRef.current;
     markersLayerRef.current.clearLayers();
 
@@ -176,7 +231,7 @@ export default function RouteMap({ postcards, base }) {
     // auto-select first card
     setSelectedCard(cityCards[0] ?? null);
     setRouteIndex(0);
-  }, [selectedCity, cityCards, base]);
+  }, [mapReady, selectedCity, cityCards, base]);
 
   // ---- Wikipedia lookup when card changes ----
   useEffect(() => {
