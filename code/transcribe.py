@@ -219,11 +219,6 @@ class TranscriptionReviewer:
             command=self._save_and_next, **btn_cfg,
         ).pack(side="left", fill="x", expand=True, padx=(0, 4))
 
-        tk.Button(
-            btn_row, text="No text",
-            bg="#4a6fa5", activebackground="#2c4a75", activeforeground="white",
-            command=self._no_text, **btn_cfg,
-        ).pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         tk.Button(
             btn_row, text="Skip",
@@ -234,8 +229,7 @@ class TranscriptionReviewer:
         # Key bindings
         self.root.bind("<Control-Return>", lambda _: self._save_and_next())
         self.root.bind("<Control-s>",       lambda _: self._save_and_next())
-        self.root.bind("<n>",               lambda _: self._no_text())
-        self.root.bind("<Right>",           lambda _: self._skip())
+        self.root.bind("<Control-r>",   lambda _: self._skip())
         self.root.bind("<Control-q>",       lambda _: self._quit())
         self.root.bind("<Escape>",          lambda _: self._quit())
         self.root.protocol("WM_DELETE_WINDOW", self._quit)
@@ -276,11 +270,6 @@ class TranscriptionReviewer:
     def _save_and_next(self) -> None:
         transcription = self.text_area.get("1.0", "end").rstrip("\n")
         self._write(transcription)
-        self.index += 1
-        self._show_current()
-
-    def _no_text(self) -> None:
-        self._write("")
         self.index += 1
         self._show_current()
 
