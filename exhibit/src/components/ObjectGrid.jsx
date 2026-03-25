@@ -259,13 +259,13 @@ export default function ObjectGrid({ postcards, base }) {
         <div style={S.group}>
           <span style={S.label}>{t.size}</span>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <span style={{ ...S.label, minWidth: 'unset', fontSize: '0.65rem' }}>▪</span>
+            <span style={{ ...S.label, minWidth: 'unset', fontSize: '1rem' }}>▪</span>
             <input
               type="range" min={5} max={250} step={5} value={cellSize}
               onChange={e => setCellSize(+e.target.value)}
               style={{ ...S.slider, width: '140px' }}
             />
-            <span style={{ ...S.label, minWidth: 'unset', fontSize: '1rem' }}>▪</span>
+            <span style={{ ...S.label, minWidth: 'unset', fontSize: '2rem' }}>▪</span>
           </div>
         </div>
 
