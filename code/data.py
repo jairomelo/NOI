@@ -33,7 +33,7 @@ def consolidate_data(data_folder, output_folder=None, output_file="consolidated_
 
     # Preserve manually-set flags from the existing consolidated CSV (matched on
     # filename, which is stable across re-runs unlike objectid).
-    _manual_cols = ['swap_front_back', 'rotation_front', 'rotation_back']
+    _manual_cols = ['swap_front_back', 'rotation_front', 'rotation_back', 'transcription_front', 'transcription_back']
     existing_path = os.path.join(output_folder, output_file)
     if os.path.exists(existing_path):
         prev = pd.read_csv(existing_path, usecols=lambda c: c in ['filename'] + _manual_cols)
@@ -297,6 +297,8 @@ def prepare_exhibit(
             '_back_ok':    back_ok,
             '_rot_front':  _to_rotation(row.get('rotation_front')),
             '_rot_back':   _to_rotation(row.get('rotation_back')),
+            'transcription_front': str(row['transcription_front']).strip() if not pd.isna(row.get('transcription_front')) else None,
+            'transcription_back':  str(row['transcription_back']).strip()  if not pd.isna(row.get('transcription_back'))  else None,
         }
         records.append(record)
 
