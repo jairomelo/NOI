@@ -134,6 +134,7 @@ export default function RouteMap({ postcards, base }) {
   const [wikiSummary,  setWikiSummary]  = useState(null);
   const [wikiLoading,  setWikiLoading]  = useState(false);
   const [mapReady,     setMapReady]     = useState(false);
+  const [sidebarOpen,  setSidebarOpen]  = useState(true);
 
   const cityCards = useMemo(
     () => (selectedCity ? cityGroups[selectedCity] ?? [] : []),
@@ -291,14 +292,28 @@ export default function RouteMap({ postcards, base }) {
         <span style={S.muted}>{t.postcards(cityCards.length)}</span>
       </div>
 
-      {/* Map + detail panel (two columns on wide screens via CSS class) */}
-      <div className="route-map-layout" style={S.mapLayout}>
+      {/* Map + detail panel */}
+      <div
+        className="route-map-layout"
+        style={{ ...S.mapLayout, gridTemplateColumns: (sidebarOpen && selectedCard) ? '1fr 380px' : '1fr' }}
+      >
 
-        {/* Leaflet target */}
-        <div ref={mapRef} style={S.mapBox} />
+        {/* Leaflet target + toggle tab */}
+        <div style={S.mapWrap}>
+          <div ref={mapRef} style={S.mapBox} />
+          {selectedCard && (
+            <button
+              onClick={() => setSidebarOpen(o => !o)}
+              style={S.sidebarToggle}
+              title={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
+            >
+              {sidebarOpen ? '›' : '‹'}
+            </button>
+          )}
+        </div>
 
         {/* Side panel */}
-        {selectedCard && (
+        {sidebarOpen && selectedCard && (
           <div style={S.panel}>
 
             {/* Route prev/next */}
@@ -390,9 +405,11 @@ const styles = {
   label:    { fontSize: '0.72rem', color: '#9a8c7e', textTransform: 'uppercase', letterSpacing: '0.09em' },
   select:   { background: '#1f1c19', border: '1px solid #3a342d', borderRadius: '4px', color: '#f0e8da', padding: '0.38rem 0.75rem', fontSize: '0.875rem', cursor: 'pointer' },
   muted:    { fontSize: '0.78rem', color: '#9a8c7e' },
-  mapLayout:{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' },
+  mapLayout:{ display: 'grid', gap: '0' },
+  mapWrap:  { position: 'relative' },
   mapBox:   { height: '460px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #3a342d', background: '#1a1614' },
-  panel:    { background: '#1f1c19', border: '1px solid #3a342d', borderRadius: '6px', display: 'flex', flexDirection: 'column', overflow: 'auto', maxHeight: '460px' },
+  sidebarToggle: { position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 1000, background: '#1f1c19', border: '1px solid #3a342d', borderRadius: '4px', color: '#c9964a', width: '26px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1, padding: 0 },
+  panel:    { background: '#1f1c19', border: '1px solid #3a342d', borderLeft: 'none', borderRadius: '0 6px 6px 0', display: 'flex', flexDirection: 'column', overflow: 'auto', height: '460px' },
   routeNav: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderBottom: '1px solid #3a342d', flexShrink: 0 },
   navBtn:   { background: 'transparent', border: '1px solid #3a342d', borderRadius: '4px', color: '#f0e8da', padding: '0.2rem 0.55rem', cursor: 'pointer', fontSize: '1rem' },
   navBtnOff:{ opacity: 0.3, cursor: 'not-allowed' },

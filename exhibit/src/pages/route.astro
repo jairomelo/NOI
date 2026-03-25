@@ -42,17 +42,7 @@ const geoCards = postcards
     margin-top: 0.25rem;
   }
 
-  /* Two-column layout for the map + panel on wider screens */
-  :global(.route-map-layout) {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  @media (min-width: 860px) {
-    :global(.route-map-layout) {
-      grid-template-columns: 1fr 380px;
-    }
-  }
+  /* Two-column layout is handled inline by RouteMap; gap removed intentionally */
 
   /* Dark-themed Leaflet popup for postcard tooltips */
   :global(.postcard-popup .leaflet-popup-content-wrapper) {
