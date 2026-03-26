@@ -20,3 +20,4 @@ wheels/
 # temporary exclusions
 artifacts/
 main.py
+slides/
