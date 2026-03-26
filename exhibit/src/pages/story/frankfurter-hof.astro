@@ -8,11 +8,11 @@ const base = import.meta.env.BASE_URL;
 
 <Layout title={`${story.title} — Historia`}>
   <!-- Story header -->
-  <header class="story-header">
+  <div class="story-header">
     <p class="story-header__eyebrow"><span data-lang="en">Story</span><span data-lang="es">Historia</span></p>
     <h1 class="story-header__title">{story.title}</h1>
     <p class="story-header__subtitle">{story.subtitle}</p>
-  </header>
+  </div>
 
   <section class="story-body">
     <StoryViewer
