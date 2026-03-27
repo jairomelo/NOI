@@ -1,47 +1,39 @@
 {
   "slug": "frankfurter-hof",
-  "title": "El Grand Hotel Frankfurter Hof",
-  "subtitle": "Frankfurt am Main, 1911 — una postal, muchas capas",
+  "title": "The Stay at the Grand Hotel Frankfurter Hof",
+  "subtitle": "Frankfurt am Main, 1911",
   "coverImage": "sitiopostales_C2-G2-002-front.jpg",
   "chapters": [
     {
       "image": "sitiopostales_C2-G2-002-front.jpg",
       "focus": { "x": 50, "y": 50, "scale": 1.0 },
       "eyebrow": "Frankfurt am Main, 1911",
-      "title": "Una ilustración a color",
-      "body": "El Grand Hotel Frankfurter Hof fue inaugurado en 1876. Para 1911, cuando esta postal fue impresa, era uno de los establecimientos más prestigiosos de Alemania: alojamiento de emperadores, políticos y celebridades del nasciente siglo XX. La tarjeta postal —un medio de comunicación masiva de apenas dos décadas de existencia— convirtió sus fachadas en íconos reconocibles en toda Europa.",
+      "title": "A Color Illustration",
+      "body": "The Grand Hotel Frankfurter Hof opened in 1876. By 1911, when this postcard was printed, it was one of the most prestigious establishments in Germany — a lodging for emperors, politicians, and celebrities of the nascent twentieth century. The hotel was among the first to use electric lighting and had Frankfurt's first telephone line.",
       "annotation": null
     },
     {
       "image": "sitiopostales_C2-G2-002-front.jpg",
-      "focus": { "x": 50, "y": 22, "scale": 2.8 },
-      "eyebrow": "Detalles arquitectónicos",
-      "title": "El coronamiento",
-      "body": "La torre central y las buhardillas de pizarra son un ejemplo del estilo Historicista tardío alemán: ecléctico, simétrico, diseñado para proyectar solidez y permanencia. El ilustrador de la postal escogió una perspectiva frontal ligeramente picada para acentuar la verticalidad del edificio.",
-      "annotation": "↑ Ajusta 'x', 'y' y 'scale' en frankfurter-hof.json para cambiar el punto de zoom"
-    },
-    {
-      "image": "sitiopostales_C2-G2-002-front.jpg",
-      "focus": { "x": 50, "y": 75, "scale": 3.2 },
-      "eyebrow": "La escena urbana",
-      "title": "La calle en 1911",
-      "body": "A nivel de calle conviven carrozas tiradas por caballos y los primeros tranvías eléctricos. Los peatones visten con formalidad de epoch wilhelminiana. La ilustración —a diferencia de la fotografía— permite un control casi pictórico de la luz y el color: el cielo se representa azul intenso, el hotel en ocres cálidos.",
+      "focus": { "x": 90, "y": 70, "scale": 2.0 },
+      "eyebrow": "The Urban Scene",
+      "title": "The Street in 1911",
+      "body": "A Tin Lizzie (Ford Model T), another car of an unidentified model, a horse-drawn carriage, and many passersby in elegant dress. A scene that could easily be mistaken for Paris or New York.",
       "annotation": null
     },
     {
-      "image": "sitiopostales_C2-G2-002-front.jpg",
-      "focus": { "x": 28, "y": 62, "scale": 4.0 },
-      "eyebrow": "Lectura cercana",
-      "title": "Un detalle: las figuras",
-      "body": "Observa las siluetas en primer plano. Son apenas sugerencias: sombreros de copa, crinolinas, carruajes. El ilustrador las insertó para dar escala al edificio y sensación de vida urbana. No son retratos; son tipos. La postal como género no representa individuos, sino escenas.",
-      "annotation": "← Este nivel de zoom (scale: 4.0) puede ser exagerado para algunas imágenes — ajusta según tu postal"
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Frankfurt_Steigenberger_Frankfurter_Hof.20150405.jpg/1280px-Frankfurt_Steigenberger_Frankfurter_Hof.20150405.jpg",
+      "focus": { "x": 50, "y": 50, "scale": 1.0 },
+      "eyebrow": "From 1911 to 2015",
+      "title": "The Connection to the Present",
+      "body": "Without flowers adorning the façade, the building seems to have lost its color.",
+      "annotation": "Epizentrum, CC BY-SA 3.0, via Wikimedia Commons"
     },
     {
       "image": "sitiopostales_C2-G2-002-back.jpg",
       "focus": { "x": 50, "y": 50, "scale": 1.0 },
-      "eyebrow": "El reverso",
-      "title": "El objeto como documento",
-      "body": "El dorso de la postal revela su arquitectura como medio: el espacio dividido entre mensaje y dirección, el recuadro para el sello. Esta convención fue estandarizada internacionalmente en 1905. Antes de esa fecha, el reverso era solo para la dirección; el mensaje debía ir al frente, ocupando parte de la imagen.",
+      "eyebrow": "The Reverse",
+      "title": "Where the Person Meets the Object",
+      "body": "We stayed here on May 28 and 29, 1911. We had the first-floor apartment, comprising the sitting room, 3 bedrooms and the bathroom, plus a separate room for Marta and Manuela. Price: 84 marks; without meals, 59 marks.",
       "annotation": null
     }
   ]

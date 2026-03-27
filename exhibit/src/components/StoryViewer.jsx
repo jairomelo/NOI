@@ -10,11 +10,36 @@ import { useState, useEffect, useRef } from 'react';
  * To author a new story, edit the JSON file in src/data/stories/ and adjust
  * the x/y/scale values per chapter.
  */
-export default function StoryViewer({ chapters, base }) {
+const resolveImage = (base, image) =>
+  image && /^https?:\/\//.test(image) ? image : `${base}images/${image}`;
+
+export default function StoryViewer({ chapters, base, hotspots = false }) {
   const [activeIdx, setActiveIdx]   = useState(0);
-  const [imgSrc, setImgSrc]         = useState(`${base}images/${chapters[0]?.image}`);
+  const [imgSrc, setImgSrc]         = useState(resolveImage(base, chapters[0]?.image));
   const [imgFading, setImgFading]   = useState(false);
+  const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
   const cardRefs = useRef([]);
+  const frameRef = useRef(null);
+
+  // Convert image-relative coords (0–100%) to frame-relative coords,
+  // accounting for the letterbox margins introduced by objectFit:contain.
+  const toFrame = (fx, fy) => {
+    const frame = frameRef.current;
+    if (!frame || !naturalSize.w || !naturalSize.h) return { cx: fx, cy: fy };
+    const fw = frame.offsetWidth;
+    const fh = frame.offsetHeight;
+    const imgAspect = naturalSize.w / naturalSize.h;
+    const frameAspect = fw / fh;
+    let rw, rh;
+    if (imgAspect > frameAspect) { rw = fw; rh = fw / imgAspect; }
+    else                         { rh = fh; rw = fh * imgAspect; }
+    const offX = ((fw - rw) / 2 / fw) * 100;
+    const offY = ((fh - rh) / 2 / fh) * 100;
+    return {
+      cx: offX + (fx / 100) * (rw / fw) * 100,
+      cy: offY + (fy / 100) * (rh / fh) * 100,
+    };
+  };
 
   const active = chapters[activeIdx] ?? chapters[0];
 
@@ -34,7 +59,7 @@ export default function StoryViewer({ chapters, base }) {
 
   // ---- Crossfade when image source changes ----
   useEffect(() => {
-    const newSrc = `${base}images/${active.image}`;
+    const newSrc = resolveImage(base, active.image);
     if (newSrc === imgSrc) return;
     setImgFading(true);
     const t = setTimeout(() => {
@@ -45,24 +70,26 @@ export default function StoryViewer({ chapters, base }) {
   }, [active.image]);
 
   const { x, y, scale } = active.focus ?? { x: 50, y: 50, scale: 1 };
+  const { cx, cy } = toFrame(x, y);
 
   return (
     <div style={S.root}>
       {/* ===== Sticky image panel ===== */}
       <div style={S.imagePanel} className="story-image-panel">
-        <div style={S.imageFrame}>
+        <div style={S.imageFrame} ref={frameRef}>
           {/* Zoom layer — the transform lives here so hotspots scale with it */}
           <div
             style={{
               ...S.zoomLayer,
               transform:       `scale(${scale})`,
-              transformOrigin: `${x}% ${y}%`,
+              transformOrigin: `${cx}% ${cy}%`,
               transition:      'transform 0.75s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
             <img
               src={imgSrc}
               alt=""
+              onLoad={e => setNaturalSize({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
               style={{
                 ...S.img,
                 opacity:    imgFading ? 0 : 1,
@@ -71,7 +98,7 @@ export default function StoryViewer({ chapters, base }) {
             />
 
             {/* Hotspot markers (only for chapters sharing the current image) */}
-            {chapters.map((ch, i) => {
+            {hotspots && chapters.map((ch, i) => {
               if (ch.image !== active.image) return null;
               const isActive = i === activeIdx;
               return (
@@ -84,14 +111,15 @@ export default function StoryViewer({ chapters, base }) {
                   title={ch.title}
                   style={{
                     ...S.hotspot,
-                    left:         `${ch.focus.x}%`,
-                    top:          `${ch.focus.y}%`,
+                    left:         `${toFrame(ch.focus.x, ch.focus.y).cx}%`,
+                    top:          `${toFrame(ch.focus.x, ch.focus.y).cy}%`,
                     // counter-scale so dots stay visually the same size while zoomed
                     transform:    `translate(-50%, -50%) scale(${1 / scale})`,
-                    background:   isActive ? '#c9964a' : 'rgba(20,18,16,0.75)',
-                    borderColor:  isActive ? '#c9964a' : 'rgba(201,150,74,0.7)',
+                    background:   isActive ? '#c9964a' : 'rgba(20,18,16,0.6)',
+                    borderColor:  isActive ? '#c9964a' : 'rgba(201,150,74,0.4)',
                     color:        isActive ? '#141210' : '#f0e8da',
-                    boxShadow:    isActive ? '0 0 0 4px rgba(201,150,74,0.3)' : 'none',
+                    boxShadow:    isActive ? '0 0 0 4px rgba(201,150,74,0.2)' : 'none',
+                    opacity:      isActive ? 0.55 : 0.2,
                   }}
                 >
                   {i + 1}
@@ -195,7 +223,7 @@ const S = {
   img: {
     width:          '100%',
     height:         '100%',
-    objectFit:      'cover',
+    objectFit:      'contain',
     objectPosition: 'center',
     display:        'block',
     userSelect:     'none',
@@ -215,7 +243,7 @@ const S = {
     justifyContent: 'center',
     lineHeight:     1,
     padding:        0,
-    transition:     'background 0.3s, box-shadow 0.3s',
+    transition:     'background 0.3s, box-shadow 0.3s, opacity 0.3s',
     zIndex:         10,
   },
   chapterCounter: {
