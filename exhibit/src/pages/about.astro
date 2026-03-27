@@ -1,0 +1,99 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title="About — Campero Collection">
+  <article class="about-page">
+    <div class="about-image">
+      <img src={`${base}images/ui/vault.jpg`} alt="Archive vault" />
+    </div>
+    <div class="about-text">
+      <h1>
+        <span data-lang="en">Campero Postcard Collection</span>
+        <span data-lang="es">Colección de postales Campero</span>
+      </h1>
+
+      <p>
+        <span data-lang="en">
+          This is an illustrative interface to represent possible visualizations of the Archive.
+          We took a collection that could have been almost irrelevant: a set of postcards gathered
+          by Manuel Campero, destined to be discarded by his family, and which was rescued by chance
+          by Mr. José Antonio Jiménez (the son of Campero's stableman and his daughter's nursemaid).
+          Campero's memories were transferred to Mr. José Antonio, and now they live here, in this
+          digital box, waiting to be explored and to awaken a reader's curiosity.
+        </span>
+        <span data-lang="es">
+          Esta es una interfaz ilustrativa para representar posibles visualizaciones del Archivo.
+          Tomamos una colección que podría haber sido casi irrelevante: un conjunto de postales
+          reunidas por Manuel Campero, destinadas a ser desechadas por su familia, y que fue
+          rescatada por casualidad por el señor José Antonio Jiménez (el hijo del caballerango de
+          Campero y la nana de su hija). Los recuerdos de Campero fueron transferidos al señor José Antonio,
+          y ahora viven aquí, en esta caja digital, esperando ser explorados y despertar la
+          curiosidad del lector.
+        </span>
+      </p>
+
+      <p>
+        <span data-lang="en">
+          This is not an archive, and it is possible that it is simply ephemeral, that someday
+          it will disappear, just as the postcards themselves are destined to fade from memory.
+          Except for a few people who are not looking at a group of objects, but at the places,
+          events, and traces of a life that wanted to be remembered.
+        </span>
+        <span data-lang="es">
+          Esto no es un archivo, y es posible que sea simplemente efímero, que algún día
+          desaparezca, así como las postales mismas están destinadas a desvanecerse de la memoria.
+          Excepto para unas pocas personas que no están mirando un conjunto de objetos, sino los
+          lugares, los eventos y los rastros de una vida que quiso ser recordada.
+        </span>
+      </p>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .about-page {
+    max-width: 960px;
+    margin: 4rem auto;
+    padding: 0 1.5rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .about-image img {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    object-fit: cover;
+  }
+
+  .about-text h1 {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .about-text p {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 1.25rem;
+  }
+
+  .about-text p:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 640px) {
+    .about-page {
+      grid-template-columns: 1fr;
+      margin: 2rem auto;
+    }
+  }
+</style>
