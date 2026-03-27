@@ -208,6 +208,7 @@ def prepare_exhibit(
     full_max=1200,
     thumb_max=300,
     dry_run=False,
+    coords_csv='code/manual/coordinates.csv',
 ):
     """
     Enrich consolidated_data.csv and export:
@@ -215,6 +216,15 @@ def prepare_exhibit(
       - optimized JPEGs →  exhibit/public/images/
     """
     df = pd.read_csv(csv_path)
+
+    # Load manual coordinate overrides (keyed by filename, which is stable across re-runs)
+    _manual_coords = {}
+    if coords_csv and os.path.exists(coords_csv):
+        coords_df = pd.read_csv(coords_csv)
+        for _, crow in coords_df.iterrows():
+            _manual_coords[str(crow['filename'])] = (float(crow['lat']), float(crow['lon']))
+        print(f"  Loaded {len(_manual_coords)} manual coordinate overrides")
+
     records = []
     missing_fronts = []
 
@@ -278,8 +288,8 @@ def prepare_exhibit(
             'title':       str(row['title']).strip()    if not pd.isna(row.get('title'))    else '',
             'date':        date_str,
             'location':    str(row['location']).strip() if not pd.isna(row.get('location')) else None,
-            'latitude':    float(row['latitude'])       if not pd.isna(row.get('latitude')) else None,
-            'longitude':   float(row['longitude'])      if not pd.isna(row.get('longitude'))else None,
+            'latitude':    _manual_coords[str(row['filename'])][0] if str(row.get('filename')) in _manual_coords else (float(row['latitude']) if not pd.isna(row.get('latitude')) else None),
+            'longitude':   _manual_coords[str(row['filename'])][1] if str(row.get('filename')) in _manual_coords else (float(row['longitude']) if not pd.isna(row.get('longitude')) else None),
             'description': str(description).strip()     if not pd.isna(description)         else None,
             'subjects':    _normalize_subjects(row.get('subject')),
             'language':    _normalize_language(row.get('language')),
